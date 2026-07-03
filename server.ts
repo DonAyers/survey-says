@@ -904,10 +904,26 @@ function reconcileActiveTimerAfterBotConversion(room: Room) {
   }
 }
 
+// Fly.io/Railway/Render inject PORT; fall back to 5551 for local dev.
+const PORT = Number(process.env.PORT) || 5551;
+
+// Cross-origin frontend (e.g. the static site on Vercel) needs CORS on the
+// plain HTTP fallback route; WebSocket upgrades aren't subject to CORS.
+const CORS_HEADERS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type",
+};
+
 const server = Bun.serve<SocketData>({
-  port: 5551,
+  port: PORT,
+  hostname: "0.0.0.0",
   async fetch(req, srv) {
     const url = new URL(req.url);
+
+    if (req.method === "OPTIONS") {
+      return new Response(null, { status: 204, headers: CORS_HEADERS });
+    }
 
     if (url.pathname === "/ws") {
       const requestedRoom = url.searchParams.get("room")?.toUpperCase() ?? null;
@@ -939,7 +955,7 @@ const server = Bun.serve<SocketData>({
     // the default frontend flow, but handy for tooling/tests).
     if (url.pathname === "/api/room" && req.method === "POST") {
       const room = createRoom(makeId());
-      return Response.json({ code: room.code });
+      return Response.json({ code: room.code }, { headers: CORS_HEADERS });
     }
 
     const staticResponse = await serveStatic(url.pathname);

@@ -32,11 +32,23 @@ export default function App() {
     const url = new URL(window.location.href);
     const requestedRoom = url.searchParams.get("room");
     const savedPlayerId = requestedRoom ? localStorage.getItem(playerStorageKey(requestedRoom)) : null;
-    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
     const params = new URLSearchParams();
     if (requestedRoom) params.set("room", requestedRoom);
     if (savedPlayerId) params.set("player", savedPlayerId);
-    const wsUrl = `${protocol}//${window.location.host}/ws${params.toString() ? `?${params.toString()}` : ""}`;
+
+    // In production the frontend (static, e.g. on Vercel) and the Bun WS
+    // server (persistent process, e.g. on Fly.io) live on different hosts.
+    // VITE_WS_URL points at that backend (e.g. "wss://survey-says.fly.dev");
+    // if unset, fall back to same-origin (local dev proxy / same-host prod).
+    const configuredBase = import.meta.env.VITE_WS_URL as string | undefined;
+    let wsUrl: string;
+    if (configuredBase) {
+      const base = configuredBase.replace(/\/$/, "");
+      wsUrl = `${base}/ws${params.toString() ? `?${params.toString()}` : ""}`;
+    } else {
+      const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+      wsUrl = `${protocol}//${window.location.host}/ws${params.toString() ? `?${params.toString()}` : ""}`;
+    }
 
     socket = new WebSocket(wsUrl);
 
