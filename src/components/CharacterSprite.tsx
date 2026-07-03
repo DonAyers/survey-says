@@ -8,9 +8,17 @@
 // Follows the same "no bespoke asset files, just parameterized SVG + CSS"
 // approach already used by SurveyLogo.tsx.
 
-import { createMemo } from "solid-js";
+import { createMemo, Show } from "solid-js";
+import { hasRealSprite } from "../spriteManifest";
 
 export type SpriteMood = "idle" | "alert" | "celebrate" | "strike";
+
+// Real sprite sheets (see scripts/sprite-pipeline/) only ever have these
+// three painted poses; "strike" has no dedicated painted frame, so it
+// borrows the "alert" pose and relies on the shared cs-mood-strike CSS
+// (red glow + shake) to convey "wrong answer" instead.
+const REAL_ART_POSE_INDEX: Record<SpriteMood, number> = { idle: 0, alert: 1, celebrate: 2, strike: 1 };
+const REAL_ART_POSE_COUNT = 3;
 
 // ---------------------------------------------------------------------------
 // Deterministic trait derivation
@@ -159,6 +167,7 @@ export default function CharacterSprite(props: {
   const traits = createMemo(() => deriveTraits(props.seed));
   const px = () => (props.size === "lg" ? 76 : props.size === "sm" ? 34 : 52);
   const mood = () => props.mood ?? "idle";
+  const useRealArt = createMemo(() => hasRealSprite(props.seed));
 
   return (
     <div
@@ -166,51 +175,74 @@ export default function CharacterSprite(props: {
       style={{ width: `${px()}px`, height: `${px()}px`, "--cs-bob-delay": `${traits().bobDelay}ms` }}
     >
       <style>{CSS}</style>
-      <svg class="cs-svg" viewBox="0 0 100 100" width="100%" height="100%" role="img" aria-label="player avatar">
-        <g class="cs-body-group">
-          {/* body */}
-          <ellipse cx="50" cy="78" rx="26" ry="18" fill={traits().outfit} />
-          {/* arms (animated on celebrate/alert via CSS transform-origin) */}
-          <g class="cs-arm cs-arm-l" style={{ "transform-origin": "34px 70px" }}>
-            <ellipse cx="26" cy="76" rx="7" ry="12" fill={traits().outfit} />
-          </g>
-          <g class="cs-arm cs-arm-r" style={{ "transform-origin": "66px 70px" }}>
-            <ellipse cx="74" cy="76" rx="7" ry="12" fill={traits().outfit} />
-          </g>
-          {/* head */}
-          <circle cx="50" cy="46" r="28" fill={traits().skin} />
-          {/* freckles */}
-          {traits().hasFreckles && (
-            <g fill="#00000022">
-              <circle cx="38" cy="54" r="1.4" />
-              <circle cx="42" cy="57" r="1.4" />
-              <circle cx="58" cy="54" r="1.4" />
-              <circle cx="62" cy="57" r="1.4" />
+      <Show
+        when={useRealArt()}
+        fallback={
+          <svg class="cs-svg" viewBox="0 0 100 100" width="100%" height="100%" role="img" aria-label="player avatar">
+            <g class="cs-body-group">
+              {/* body */}
+              <ellipse cx="50" cy="78" rx="26" ry="18" fill={traits().outfit} />
+              {/* arms (animated on celebrate/alert via CSS transform-origin) */}
+              <g class="cs-arm cs-arm-l" style={{ "transform-origin": "34px 70px" }}>
+                <ellipse cx="26" cy="76" rx="7" ry="12" fill={traits().outfit} />
+              </g>
+              <g class="cs-arm cs-arm-r" style={{ "transform-origin": "66px 70px" }}>
+                <ellipse cx="74" cy="76" rx="7" ry="12" fill={traits().outfit} />
+              </g>
+              {/* head */}
+              <circle cx="50" cy="46" r="28" fill={traits().skin} />
+              {/* freckles */}
+              {traits().hasFreckles && (
+                <g fill="#00000022">
+                  <circle cx="38" cy="54" r="1.4" />
+                  <circle cx="42" cy="57" r="1.4" />
+                  <circle cx="58" cy="54" r="1.4" />
+                  <circle cx="62" cy="57" r="1.4" />
+                </g>
+              )}
+              {/* eyes */}
+              <g class="cs-eyes">
+                <circle cx="40" cy="46" r="3.2" fill="#1c1917" />
+                <circle cx="60" cy="46" r="3.2" fill="#1c1917" />
+              </g>
+              {/* mouth: shape swaps per mood via CSS-hidden siblings */}
+              <path class="cs-mouth cs-mouth-idle" d="M42 58 Q50 64 58 58" fill="none" stroke="#7a3b1e" stroke-width="2.5" stroke-linecap="round" />
+              <path class="cs-mouth cs-mouth-celebrate" d="M40 56 Q50 70 60 56 Q50 66 40 56 Z" fill="#7a3b1e" />
+              <path class="cs-mouth cs-mouth-strike" d="M42 60 Q50 54 58 60" fill="none" stroke="#7a3b1e" stroke-width="2.5" stroke-linecap="round" />
+              {/* hair */}
+              <HairShape style={traits().hairStyle} color={traits().hairColor} />
+              {/* accessory */}
+              <AccessoryShape kind={traits().accessory} outfit={traits().outfit} />
+              {props.isNPC && (
+                <g>
+                  <rect x="34" y="16" width="32" height="8" rx="4" fill="#0f172a" stroke="#94a3b8" stroke-width="1" />
+                  <circle cx="42" cy="20" r="1.6" fill="#22d3ee" />
+                  <circle cx="50" cy="20" r="1.6" fill="#22d3ee" />
+                  <circle cx="58" cy="20" r="1.6" fill="#22d3ee" />
+                </g>
+              )}
             </g>
-          )}
-          {/* eyes */}
-          <g class="cs-eyes">
-            <circle cx="40" cy="46" r="3.2" fill="#1c1917" />
-            <circle cx="60" cy="46" r="3.2" fill="#1c1917" />
-          </g>
-          {/* mouth: shape swaps per mood via CSS-hidden siblings */}
-          <path class="cs-mouth cs-mouth-idle" d="M42 58 Q50 64 58 58" fill="none" stroke="#7a3b1e" stroke-width="2.5" stroke-linecap="round" />
-          <path class="cs-mouth cs-mouth-celebrate" d="M40 56 Q50 70 60 56 Q50 66 40 56 Z" fill="#7a3b1e" />
-          <path class="cs-mouth cs-mouth-strike" d="M42 60 Q50 54 58 60" fill="none" stroke="#7a3b1e" stroke-width="2.5" stroke-linecap="round" />
-          {/* hair */}
-          <HairShape style={traits().hairStyle} color={traits().hairColor} />
-          {/* accessory */}
-          <AccessoryShape kind={traits().accessory} outfit={traits().outfit} />
-          {props.isNPC && (
-            <g>
-              <rect x="34" y="16" width="32" height="8" rx="4" fill="#0f172a" stroke="#94a3b8" stroke-width="1" />
-              <circle cx="42" cy="20" r="1.6" fill="#22d3ee" />
-              <circle cx="50" cy="20" r="1.6" fill="#22d3ee" />
-              <circle cx="58" cy="20" r="1.6" fill="#22d3ee" />
-            </g>
-          )}
-        </g>
-      </svg>
+          </svg>
+        }
+      >
+        {/* Real, hand-picked painted sprite sheet (see scripts/sprite-pipeline/).
+            The sheet is a horizontal strip of REAL_ART_POSE_COUNT square frames;
+            background-size stretches it to N*100% width so each frame occupies
+            exactly one container-width, then background-position-x picks which
+            frame shows. Animation (bob/alert/celebrate/shake) is the same
+            cs-body-group CSS driven by the outer cs-mood-* class. */}
+        <div
+          class="cs-body-group cs-real-frame"
+          style={{
+            width: "100%",
+            height: "100%",
+            "background-image": `url(/sprites/${props.seed}/sheet.png)`,
+            "background-size": `${REAL_ART_POSE_COUNT * 100}% 100%`,
+            "background-position": `${(REAL_ART_POSE_INDEX[mood()] / (REAL_ART_POSE_COUNT - 1)) * 100}% 0%`,
+            "background-repeat": "no-repeat",
+          }}
+        />
+      </Show>
     </div>
   );
 }

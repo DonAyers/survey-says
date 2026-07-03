@@ -1,0 +1,11 @@
+{
+  "preset": "neon-gravy",
+  "frameSize": 256,
+  "poses": [
+    "idle",
+    "alert",
+    "celebrate"
+  ],
+  "sheetWidth": 768,
+  "sheetHeight": 256
+}
