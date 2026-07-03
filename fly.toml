@@ -1,23 +1,22 @@
-# Fly.io app config for the Bun WS/game server only. The frontend is a
-# separate static deploy (Vercel) — see DEPLOYMENT.md.
+# fly.toml app configuration file generated for survey-says on 2026-07-03T00:38:36Z
 #
-# First-time setup:
-#   fly launch --no-deploy --copy-config --name <your-app-name>
-#   fly deploy
-app = "survey-says"
-primary_region = "iad"
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
+
+app = 'survey-says'
+primary_region = 'iad'
 
 [build]
 
 [env]
-  PORT = "8080"
+  PORT = '8080'
 
 [http_service]
   internal_port = 8080
   force_https = true
-  auto_stop_machines = "stop"
+  auto_stop_machines = 'stop'
   auto_start_machines = true
   min_machines_running = 0
 
 [[vm]]
-  size = "shared-cpu-1x"
+  size = 'shared-cpu-1x'
