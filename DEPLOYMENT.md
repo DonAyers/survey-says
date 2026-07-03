@@ -46,6 +46,21 @@ Unchanged — `npm run dev-stack` still runs both the Vite dev server (proxying
 `/ws` to `localhost:5551`) and the Bun server together on one machine.
 `VITE_WS_URL` is only needed when frontend and backend are on different hosts.
 
+## Continuous deployment
+
+- **Frontend (Vercel)**: already automatic. The GitHub repo is connected to
+  the Vercel project, so every push to `main` triggers a production deploy —
+  no extra setup needed.
+- **Backend (Fly.io)**: automated via `.github/workflows/fly-deploy.yml`,
+  which runs `flyctl deploy` on every push to `main` that touches
+  `server.ts`, `Dockerfile`, `fly.toml`, `package.json`, or `bun.lock` (or can
+  be triggered manually from the Actions tab). To enable it:
+  1. Generate a deploy token: `fly tokens create deploy -a survey-says`.
+  2. Add it as a repo secret named `FLY_API_TOKEN`
+     (Settings → Secrets and variables → Actions → New repository secret).
+  3. Push to `main` — the workflow builds and deploys automatically. You can
+     still run `fly deploy` locally any time for out-of-band deploys.
+
 ## Custom domain / CORS
 
 The Bun server sends permissive CORS headers (`Access-Control-Allow-Origin: *`)
