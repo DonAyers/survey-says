@@ -33,7 +33,7 @@ export interface QuestionView {
   answers: AnswerView[];
 }
 
-export type Phase = "lobby" | "faceoff" | "board" | "steal" | "round_over" | "game_over";
+export type Phase = "lobby" | "faceoff" | "board" | "steal" | "reveal" | "round_over" | "game_over";
 
 export type FaceoffStage = "await_buzz" | "await_first_guess" | "await_second_guess" | "resolved";
 

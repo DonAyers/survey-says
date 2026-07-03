@@ -3,6 +3,7 @@ import type { Role, RoomView } from "./types";
 import LobbyView from "./components/LobbyView";
 import FaceoffScene from "./components/FaceoffScene";
 import MainBoardScene from "./components/MainBoardScene";
+import RevealScene from "./components/RevealScene";
 import RevealCloseup from "./components/RevealCloseup";
 import { RoundOverView, GameOverView } from "./components/RoundOverGameOver";
 import { IntroSplash, HeaderLogo } from "./components/SurveyLogo";
@@ -143,6 +144,10 @@ export default function App() {
     send({ type: "next_round" });
   }
 
+  function skipReveal() {
+    send({ type: "skip_reveal" });
+  }
+
   function resetGame() {
     send({ type: "reset_game" });
   }
@@ -212,6 +217,11 @@ export default function App() {
                 onStrike={strike}
                 flash={flash()}
               />
+              <RevealCloseup room={r()} />
+            </Show>
+
+            <Show when={r().phase === "reveal"}>
+              <RevealScene room={r()} isHost={role() === "host"} onSkip={skipReveal} />
               <RevealCloseup room={r()} />
             </Show>
 

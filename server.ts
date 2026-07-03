@@ -58,7 +58,7 @@ interface Team {
   targetSize: number; // desired roster size; unfilled slots auto-fill with bots at kickoff
 }
 
-type Phase = "lobby" | "faceoff" | "board" | "steal" | "round_over" | "game_over";
+type Phase = "lobby" | "faceoff" | "board" | "steal" | "reveal" | "round_over" | "game_over";
 
 type FaceoffStage = "await_buzz" | "await_first_guess" | "await_second_guess" | "resolved";
 
@@ -227,6 +227,7 @@ const ROUND_MULTIPLIERS = [1, 2, 3];
 const TURN_MS = 20_000;
 const STEAL_MS = 15_000;
 const BUZZ_MS = 10_000;
+const REVEAL_STEP_MS = 1_700;
 
 function npcThinkDelayMs(): number {
   return 1200 + Math.random() * 2000; // 1.2s-3.2s, just enough to feel alive
@@ -760,8 +761,7 @@ function handleBoardGuess(room: Room, rawText: string) {
 
     const allRevealed = question.answers.every((a) => a.revealed);
     if (allRevealed) {
-      room.phase = "round_over";
-      stopTimer(room);
+      startReveal(room);
     } else {
       // Correct guess: same contestant keeps going, fresh clock.
       advanceMainTurnTimer(room);
@@ -791,8 +791,7 @@ function advanceStealTimer(room: Room) {
   } else {
     startTimer(room, STEAL_MS, (liveRoom) => {
       if (liveRoom.phase !== "steal") return;
-      liveRoom.phase = "round_over";
-      stopTimer(liveRoom);
+      startReveal(liveRoom);
     });
   }
 }
@@ -811,8 +810,48 @@ function handleStealGuess(room: Room, rawText: string) {
     for (const a of question.answers) a.revealed = true;
     room.roundPot = totalQuestionPoints(question) * room.multiplier;
   }
-  room.phase = "round_over";
-  stopTimer(room);
+  startReveal(room);
+}
+
+// ---------------------------------------------------------------------------
+// Reveal — after the board/steal is decided, don't just cut to the round
+// summary: dramatically flip any answers nobody guessed one at a time
+// (smallest points first, so the biggest answer lands last for suspense)
+// before finally settling on "round_over". Every board/steal ending path
+// should route through here instead of setting phase = "round_over" itself.
+// ---------------------------------------------------------------------------
+
+function startReveal(room: Room) {
+  const question = currentQuestion(room);
+  if (question.answers.every((a) => a.revealed)) {
+    room.phase = "round_over";
+    stopTimer(room);
+    return;
+  }
+  room.phase = "reveal";
+  startTimer(room, REVEAL_STEP_MS, (liveRoom) => revealNextHiddenAnswer(liveRoom));
+}
+
+function revealNextHiddenAnswer(room: Room) {
+  const question = currentQuestion(room);
+  const hidden = question.answers.filter((a) => !a.revealed);
+  if (hidden.length > 0) {
+    // Reveal the cheapest remaining answer first, saving the priciest for
+    // last — the suspenseful "and the number one answer was..." beat.
+    const next = [...hidden].sort((a, b) => a.points - b.points)[0];
+    next.revealed = true;
+  }
+
+  if (question.answers.some((a) => !a.revealed)) {
+    startTimer(room, REVEAL_STEP_MS, (liveRoom) => revealNextHiddenAnswer(liveRoom));
+  } else {
+    // One extra beat with the fully-revealed board on screen before cutting
+    // to the round summary.
+    startTimer(room, REVEAL_STEP_MS, (liveRoom) => {
+      liveRoom.phase = "round_over";
+      stopTimer(liveRoom);
+    });
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -842,6 +881,17 @@ function handleGuess(room: Room, rawText: string) {
 function handleStrike(room: Room) {
   if (room.phase !== "board") return;
   registerStrike(room);
+}
+
+// Lets an impatient host cut the suspense short and jump straight to the
+// round summary — reveals everything still hidden immediately instead of
+// one at a time.
+function handleSkipReveal(room: Room) {
+  if (room.phase !== "reveal") return;
+  const question = currentQuestion(room);
+  for (const a of question.answers) a.revealed = true;
+  room.phase = "round_over";
+  stopTimer(room);
 }
 
 function handleStartGame(room: Room, fillIntelligence: number) {
@@ -1071,6 +1121,10 @@ const server = Bun.serve<SocketData>({
         case "strike":
           if (!isHost) return;
           handleStrike(room);
+          break;
+        case "skip_reveal":
+          if (!isHost) return;
+          handleSkipReveal(room);
           break;
         case "next_round":
           if (!isHost) return;
