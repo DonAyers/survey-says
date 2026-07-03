@@ -9,6 +9,7 @@ RUN bun install --frozen-lockfile --production
 
 COPY server.ts ./
 COPY data ./data
+COPY src/spritePresets.ts ./src/spritePresets.ts
 
 ENV NODE_ENV=production
 EXPOSE 8080
