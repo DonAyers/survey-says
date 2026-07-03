@@ -39,22 +39,22 @@ export default function FaceoffScene(props: {
   };
 
   return (
-    <div class="w-full max-w-5xl flex flex-col gap-6 items-center">
+    <div class="w-full max-w-5xl flex flex-col gap-4 sm:gap-6 items-center">
       <div class="text-center">
-        <p class="text-amber-400 font-black text-xl uppercase tracking-widest">Face-Off — Round {props.room.roundNumber}</p>
+        <p class="text-amber-400 font-black text-lg sm:text-xl uppercase tracking-widest">Face-Off — Round {props.room.roundNumber}</p>
         <p class="text-slate-400 text-sm">{props.room.multiplier}x points this round</p>
       </div>
 
-      <div class="bg-board rounded-xl p-6 text-center shadow-2xl border-4 border-amber-400 w-full">
-        <p class="text-2xl font-bold">{props.room.question.prompt}</p>
-        <div class="flex justify-center gap-2 mt-3">
+      <div class="bg-board rounded-xl p-4 sm:p-6 text-center shadow-2xl border-4 border-amber-400 w-full">
+        <p class="text-lg sm:text-2xl font-bold">{props.room.question.prompt}</p>
+        <div class="flex flex-wrap justify-center gap-2 mt-3">
           <For each={props.room.question.answers}>
             {() => <span class="w-8 h-8 flex items-center justify-center bg-slate-800 rounded text-slate-500 font-bold">?</span>}
           </For>
         </div>
       </div>
 
-      <div class="grid grid-cols-2 gap-8 w-full items-start">
+      <div class="grid grid-cols-2 gap-3 sm:gap-8 w-full items-start">
         <For each={props.room.teams}>
           {(team, i) => {
             const rep = () => repOf(team);
@@ -62,12 +62,16 @@ export default function FaceoffScene(props: {
             const isAwaiting = () => awaitingTeamId() === team.id;
             const guess = () => (fo().firstGuess?.teamId === team.id ? fo().firstGuess : fo().secondGuess?.teamId === team.id ? fo().secondGuess : null);
             return (
-              <div class={`flex flex-col items-center gap-3 ${i() === 1 ? "order-2" : ""}`}>
-                <p class="font-bold text-lg">{team.name}</p>
+              <div class={`flex flex-col items-center gap-2 sm:gap-3 ${i() === 1 ? "order-2" : ""}`}>
+                <p class="font-bold text-base sm:text-lg text-center">{team.name}</p>
                 <Show when={rep()}>{(r) => <Avatar member={r()} size="lg" highlighted={isAwaiting()} />}</Show>
 
                 <Show when={fo().stage === "await_buzz"}>
-                  <button class="btn-danger text-lg px-6 py-3" disabled={!canBuzz(team.id)} onClick={() => props.onBuzz(team.id)}>
+                  <button
+                    class="btn-danger text-xs sm:text-lg px-2 sm:px-6 py-2 sm:py-3 text-center"
+                    disabled={!canBuzz(team.id)}
+                    onClick={() => props.onBuzz(team.id)}
+                  >
                     🔔 {team.name} Buzzed In!
                   </button>
                 </Show>
@@ -104,9 +108,9 @@ export default function FaceoffScene(props: {
                 ? "Your guess — what did the contestant say?"
                 : "Waiting for the other contestant to answer…"}
           </p>
-          <div class="flex gap-2">
+          <div class="flex flex-col sm:flex-row gap-2">
             <input
-              class="flex-1 bg-slate-900 border border-slate-600 rounded px-3 py-2 text-white placeholder-slate-500 disabled:opacity-40"
+              class="flex-1 min-w-0 bg-slate-900 border border-slate-600 rounded px-3 py-2 text-white placeholder-slate-500 disabled:opacity-40"
               type="text"
               placeholder="Type the guess…"
               value={props.guessInput}

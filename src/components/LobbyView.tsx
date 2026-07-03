@@ -401,13 +401,13 @@ const CSS = `
 }
 
 .ls-control-row, .ls-dial-row {
-  display: flex; align-items: center; gap: .6rem;
+  display: flex; align-items: center; gap: .6rem; flex-wrap: wrap;
   background: rgba(0,0,0,.28); border-radius: 10px; padding: .5rem .7rem;
   border: 1px solid rgba(255,255,255,.06);
 }
 .ls-control-label, .ls-dial-label {
   font: 700 .68rem/1 "Bungee", sans-serif; letter-spacing: .05em; text-transform: uppercase;
-  color: #8b96af; white-space: nowrap;
+  color: #8b96af;
 }
 .ls-dial-label { margin-right: .1rem; }
 .ls-dial-value { font: 800 1rem/1 "Bevan", serif; color: #e9c3f5; width: 2rem; text-align: right; }

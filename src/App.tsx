@@ -153,7 +153,7 @@ export default function App() {
   }
 
   return (
-    <div class="min-h-screen bg-slate-900 text-white flex flex-col items-center p-6 gap-6">
+    <div class="min-h-screen w-full max-w-full overflow-x-hidden bg-slate-900 text-white flex flex-col items-center p-3 sm:p-6 gap-4 sm:gap-6">
       <Show when={showIntro()}>
         <IntroSplash onDone={() => setShowIntro(false)} />
       </Show>

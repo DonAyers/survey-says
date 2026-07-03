@@ -36,8 +36,8 @@ export default function MainBoardScene(props: {
   const canAct = () => props.isHost || (!!props.myMemberId && props.myMemberId === props.room.activeMemberId);
 
   return (
-    <div class="w-full max-w-6xl flex flex-col gap-5">
-      <div class="flex justify-between items-center text-sm text-slate-400">
+    <div class="w-full max-w-6xl flex flex-col gap-4 sm:gap-5">
+      <div class="flex flex-wrap justify-between items-center gap-x-4 gap-y-1 text-xs sm:text-sm text-slate-400">
         <span>
           Round {props.room.roundNumber} / {props.room.totalRounds} — {props.room.multiplier}x points
         </span>
@@ -53,14 +53,16 @@ export default function MainBoardScene(props: {
         </Show>
       </div>
 
-      <div class="grid grid-cols-[1fr_2fr_1fr] gap-4 items-start">
+      <div class="grid grid-cols-1 md:grid-cols-[1fr_2fr_1fr] gap-4 items-start">
         {/* Left team panel */}
-        <TeamPanel team={props.room.teams[0]} room={props.room} upMember={upMember} />
+        <div class="order-2 md:order-none">
+          <TeamPanel team={props.room.teams[0]} room={props.room} upMember={upMember} />
+        </div>
 
         {/* Center board */}
-        <div class="flex flex-col gap-4">
-          <div class="bg-board rounded-xl p-5 text-center shadow-2xl border-4 border-amber-400">
-            <p class="text-xl font-bold">{props.room.question.prompt}</p>
+        <div class="order-1 md:order-none flex flex-col gap-4">
+          <div class="bg-board rounded-xl p-3 sm:p-5 text-center shadow-2xl border-4 border-amber-400">
+            <p class="text-lg sm:text-xl font-bold">{props.room.question.prompt}</p>
           </div>
 
           <div class="flex justify-center">
@@ -71,7 +73,7 @@ export default function MainBoardScene(props: {
             <For each={props.room.question.answers}>
               {(answer, i) => (
                 <div
-                  class={`flex items-center justify-between rounded-lg px-4 py-2 font-bold border-2 ${
+                  class={`flex items-center justify-between rounded-lg px-3 sm:px-4 py-2 font-bold border-2 text-sm sm:text-base ${
                     answer.revealed ? "bg-boardCell border-amber-300 text-white" : "bg-slate-800 border-slate-600 text-slate-600"
                   }`}
                 >
@@ -86,17 +88,17 @@ export default function MainBoardScene(props: {
             </For>
           </div>
 
-          <div class="flex items-center justify-center gap-4">
+          <div class="flex flex-wrap items-center justify-center gap-x-4 gap-y-1">
             <p class="text-slate-400 text-sm uppercase tracking-widest">Strikes</p>
             <div class="flex gap-2">
               <For each={[0, 1, 2]}>
-                {(i) => <span class={`text-4xl font-black ${i < props.room.strikes ? "text-strike" : "text-slate-700"}`}>X</span>}
+                {(i) => <span class={`text-3xl sm:text-4xl font-black ${i < props.room.strikes ? "text-strike" : "text-slate-700"}`}>X</span>}
               </For>
             </div>
             <p class="text-slate-400 text-sm">Round pot: {props.room.roundPot}</p>
           </div>
 
-          <div class="bg-slate-800 rounded-xl p-4 flex flex-col gap-3 shadow-xl">
+          <div class="bg-slate-800 rounded-xl p-3 sm:p-4 flex flex-col gap-3 shadow-xl">
             <p class="text-slate-400 text-sm uppercase tracking-widest">
               {!activeGuesserIsHuman()
                 ? "Waiting for the NPC to answer…"
@@ -106,9 +108,9 @@ export default function MainBoardScene(props: {
                     ? `Your guess — one shot for ${stealTeam()?.name} to steal the whole pot`
                     : "Your guess — a miss is an automatic strike and passes the turn"}
             </p>
-            <div class="flex gap-2">
+            <div class="flex flex-col sm:flex-row gap-2">
               <input
-                class="flex-1 bg-slate-900 border border-slate-600 rounded px-3 py-2 text-white placeholder-slate-500 disabled:opacity-40"
+                class="flex-1 min-w-0 bg-slate-900 border border-slate-600 rounded px-3 py-2 text-white placeholder-slate-500 disabled:opacity-40"
                 type="text"
                 placeholder="Type what the contestant guessed…"
                 value={props.guessInput}
@@ -116,14 +118,16 @@ export default function MainBoardScene(props: {
                 onInput={(e) => props.onGuessInput(e.currentTarget.value)}
                 onKeyDown={(e) => e.key === "Enter" && props.onSubmitGuess()}
               />
-              <button class="btn-primary" disabled={!activeGuesserIsHuman() || !canAct()} onClick={props.onSubmitGuess}>
-                Submit
-              </button>
-              <Show when={!isSteal()}>
-                <button class="btn-danger" disabled={!props.isHost} onClick={props.onStrike}>
-                  Strike!
+              <div class="flex gap-2">
+                <button class="btn-primary flex-1 sm:flex-none" disabled={!activeGuesserIsHuman() || !canAct()} onClick={props.onSubmitGuess}>
+                  Submit
                 </button>
-              </Show>
+                <Show when={!isSteal()}>
+                  <button class="btn-danger flex-1 sm:flex-none" disabled={!props.isHost} onClick={props.onStrike}>
+                    Strike!
+                  </button>
+                </Show>
+              </div>
             </div>
             <Show when={props.flash}>
               <p class="text-strike text-sm font-semibold">{props.flash}</p>
@@ -132,7 +136,9 @@ export default function MainBoardScene(props: {
         </div>
 
         {/* Right team panel */}
-        <TeamPanel team={props.room.teams[1]} room={props.room} upMember={upMember} />
+        <div class="order-3 md:order-none">
+          <TeamPanel team={props.room.teams[1]} room={props.room} upMember={upMember} />
+        </div>
       </div>
     </div>
   );
@@ -155,7 +161,7 @@ function TeamPanel(props: { team: Team; room: RoomView; upMember: (team: Team) =
         </p>
         <p class="text-2xl font-black text-amber-300">{props.team.score}</p>
       </div>
-      <div class="flex flex-col gap-2 items-center">
+      <div class="flex flex-row md:flex-col flex-wrap gap-2 items-center justify-center">
         <For each={props.team.members}>
           {(m) => <Avatar member={m} highlighted={props.upMember(props.team)?.id === m.id} />}
         </For>
