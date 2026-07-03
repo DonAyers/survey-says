@@ -16,6 +16,8 @@
 // exactly where a real model call (local LLM, hosted API, whatever) could
 // be dropped in later without touching the rest of the game loop.
 
+import { PRESET_SEEDS } from "./src/spritePresets";
+
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
@@ -318,10 +320,16 @@ function makeId(): string {
   return crypto.randomUUID();
 }
 
-// Fresh seed for a brand-new member's procedural sprite look (see
-// CharacterSprite.tsx on the frontend). Doesn't need to be cryptographically
-// interesting, just unique-ish and stable until the player rerolls it.
-function makeAvatarSeed(): string {
+// Seed for a brand-new member's sprite look (see CharacterSprite.tsx on the
+// frontend). Prefers a curated PRESET_SEED not already used elsewhere in the
+// room, so new players get a nice-looking (often real painted art) default
+// instead of a throwaway procedural blob; falls back to a random string once
+// every preset is already taken. Players can still reroll/pick their own via
+// set_avatar_seed.
+function makeAvatarSeed(room?: Room): string {
+  const used = new Set(room ? room.teams.flatMap((t) => t.members.map((m) => m.avatarSeed)) : []);
+  const available = PRESET_SEEDS.filter((seed) => !used.has(seed));
+  if (available.length > 0) return available[Math.floor(Math.random() * available.length)];
   return crypto.randomUUID().slice(0, 8);
 }
 
@@ -499,14 +507,14 @@ function handleAddMember(room: Room, teamId: string, name: string) {
   const team = findTeam(room, teamId);
   const trimmed = name.trim().slice(0, 24);
   if (!team || !trimmed) return;
-  team.members.push({ id: makeId(), name: trimmed, isNPC: false, intelligence: 100, kind: "local", avatarSeed: makeAvatarSeed() });
+  team.members.push({ id: makeId(), name: trimmed, isNPC: false, intelligence: 100, kind: "local", avatarSeed: makeAvatarSeed(room) });
 }
 
 function handleAddNpc(room: Room, teamId: string, intelligence: number) {
   const team = findTeam(room, teamId);
   if (!team) return;
   const clamped = Number.isFinite(intelligence) ? Math.max(0, Math.min(100, Math.round(intelligence))) : 50;
-  team.members.push({ id: makeId(), name: nextNpcName(), isNPC: true, intelligence: clamped, kind: "bot", avatarSeed: makeAvatarSeed() });
+  team.members.push({ id: makeId(), name: nextNpcName(), isNPC: true, intelligence: clamped, kind: "bot", avatarSeed: makeAvatarSeed(room) });
 }
 
 function handleSetLocalCount(room: Room, teamId: string, count: number) {
@@ -516,7 +524,7 @@ function handleSetLocalCount(room: Room, teamId: string, count: number) {
   const locals = team.members.filter((m) => m.kind === "local");
   if (locals.length < clamped) {
     for (let i = locals.length; i < clamped; i += 1) {
-      team.members.push({ id: makeId(), name: `Player ${i + 1}`, isNPC: false, intelligence: 100, kind: "local", avatarSeed: makeAvatarSeed() });
+      team.members.push({ id: makeId(), name: `Player ${i + 1}`, isNPC: false, intelligence: 100, kind: "local", avatarSeed: makeAvatarSeed(room) });
     }
   } else if (locals.length > clamped) {
     let toRemove = locals.length - clamped;
@@ -565,7 +573,7 @@ function handleJoinAsPlayer(room: Room, playerId: string, teamId: string, name: 
     intelligence: 100,
     kind: "remote",
     claimedBy: playerId,
-    avatarSeed: makeAvatarSeed(),
+    avatarSeed: makeAvatarSeed(room),
   };
   team.members.push(member);
   return member;
@@ -840,7 +848,7 @@ function handleStartGame(room: Room, fillIntelligence: number) {
   const clampedIQ = Number.isFinite(fillIntelligence) ? Math.max(0, Math.min(100, Math.round(fillIntelligence))) : 50;
   for (const team of room.teams) {
     while (team.members.length < team.targetSize) {
-      team.members.push({ id: makeId(), name: nextNpcName(), isNPC: true, intelligence: clampedIQ, kind: "bot", avatarSeed: makeAvatarSeed() });
+      team.members.push({ id: makeId(), name: nextNpcName(), isNPC: true, intelligence: clampedIQ, kind: "bot", avatarSeed: makeAvatarSeed(room) });
     }
   }
   if (room.teams.some((t) => t.members.length === 0)) return;

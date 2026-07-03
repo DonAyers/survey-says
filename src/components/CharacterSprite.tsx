@@ -10,6 +10,7 @@
 
 import { createMemo, Show } from "solid-js";
 import { hasRealSprite } from "../spriteManifest";
+import { PRESET_SEEDS } from "../spritePresets";
 
 export type SpriteMood = "idle" | "alert" | "celebrate" | "strike";
 
@@ -72,19 +73,20 @@ function deriveTraits(seed: string): Traits {
 }
 
 // A curated set of seeds picked because they land on pleasing, distinct
-// combinations — the "choose a character" strip in the lobby.
-export const PRESET_SEEDS = [
-  "marmalade-otter",
-  "velvet-heckler",
-  "static-clipboard",
-  "neon-gravy",
-  "quiet-riot-accountant",
-  "disco-plumber",
-  "feral-intern",
-  "chrome-flamingo",
-] as const;
+// combinations — the "choose a character" strip in the lobby. Shared with
+// server.ts (see spritePresets.ts) so new members are assigned one of these
+// by default.
+export { PRESET_SEEDS } from "../spritePresets";
 
-export function randomAvatarSeed(): string {
+// Used by the lobby's 🎲 reroll button. Prefers a random *other* preset (so
+// the reroll shows off a real painted look when the art pipeline has been
+// run) and only falls back to a throwaway procedural seed once every preset
+// has already been tried, so mashing reroll still eventually shows variety.
+export function randomAvatarSeed(excluding?: string): string {
+  const pool = PRESET_SEEDS.filter((seed) => seed !== excluding);
+  if (pool.length > 0 && Math.random() < 0.85) {
+    return pool[Math.floor(Math.random() * pool.length)];
+  }
   return Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4);
 }
 

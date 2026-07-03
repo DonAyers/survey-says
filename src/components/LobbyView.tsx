@@ -268,7 +268,7 @@ function TeamSetup(props: {
                     <button
                       class="ls-reroll-btn"
                       title="Randomize look"
-                      onClick={() => props.onSetAvatarSeed(props.team.id, m.id, randomAvatarSeed())}
+                      onClick={() => props.onSetAvatarSeed(props.team.id, m.id, randomAvatarSeed(m.avatarSeed))}
                     >
                       🎲
                     </button>
