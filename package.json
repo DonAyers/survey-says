@@ -13,7 +13,9 @@
     "server": "bun run server.ts",
     "predev-stack": "npm run kill-dev",
     "dev-stack": "concurrently -n server,client -c blue,green \"npm:server\" \"npm:dev\"",
-    "full-stack": "npm run dev-stack"
+    "full-stack": "npm run dev-stack",
+    "sprites:generate": "python3 scripts/sprite-pipeline/generate.py",
+    "sprites:process": "python3 scripts/sprite-pipeline/process.py"
   },
   "dependencies": {
     "solid-js": "^1.9.3"

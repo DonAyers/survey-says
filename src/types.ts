@@ -10,6 +10,7 @@ export interface Member {
   isNPC: boolean;
   intelligence: number;
   kind: MemberKind;
+  avatarSeed: string;
 }
 
 export interface Team {

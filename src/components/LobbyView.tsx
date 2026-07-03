@@ -5,6 +5,7 @@
 // <style> block below, following the same pattern as SurveyLogo.tsx.
 import { createSignal, For, Show } from "solid-js";
 import type { RoomView, Team } from "../types";
+import CharacterSprite, { PRESET_SEEDS, randomAvatarSeed } from "./CharacterSprite";
 
 const TEAM_ACCENTS = ["ls-team-gold", "ls-team-magenta"] as const;
 
@@ -19,6 +20,7 @@ export default function LobbyView(props: {
   onRemoveMember: (teamId: string, memberId: string) => void;
   onStartGame: (fillIntelligence: number) => void;
   onJoinAsPlayer: (teamId: string, name: string) => void;
+  onSetAvatarSeed: (teamId: string, memberId: string, seed: string) => void;
 }) {
   const [fillIQ, setFillIQ] = createSignal(50);
   const [copied, setCopied] = createSignal(false);
@@ -78,6 +80,7 @@ export default function LobbyView(props: {
               onSetTeamSize={props.onSetTeamSize}
               onRemoveMember={props.onRemoveMember}
               onJoinAsPlayer={props.onJoinAsPlayer}
+              onSetAvatarSeed={props.onSetAvatarSeed}
             />
           )}
         </For>
@@ -140,12 +143,15 @@ function TeamSetup(props: {
   onSetTeamSize: (teamId: string, size: number) => void;
   onRemoveMember: (teamId: string, memberId: string) => void;
   onJoinAsPlayer: (teamId: string, name: string) => void;
+  onSetAvatarSeed: (teamId: string, memberId: string, seed: string) => void;
 }) {
   const [nameDraft, setNameDraft] = createSignal(props.team.name);
   const [npcIQ, setNpcIQ] = createSignal(50);
   const [joinName, setJoinName] = createSignal("");
+  const [pickerFor, setPickerFor] = createSignal<string | null>(null);
   const localCount = () => props.team.members.filter((m) => m.kind === "local").length;
   const sliderAccent = () => (props.accent === "ls-team-gold" ? "ls-slider-gold" : "ls-slider-magenta");
+  const canEditAvatar = (memberId: string) => props.isHost || memberId === props.myMemberId;
 
   function commitName() {
     const v = nameDraft().trim();
@@ -242,19 +248,55 @@ function TeamSetup(props: {
         </Show>
         <For each={props.team.members}>
           {(m) => (
-            <li class="ls-roster-tag">
-              <span class="ls-roster-name">
-                {m.name}
-                {m.id === props.myMemberId && <span class="ls-you-badge">YOU</span>}
-              </span>
-              <span class="ls-roster-right">
-                <span class={`ls-kind-chip ls-kind-${m.kind}`}>{kindLabel(m.kind, m.intelligence)}</span>
-                <Show when={props.isHost}>
-                  <button class="ls-remove-btn" onClick={() => props.onRemoveMember(props.team.id, m.id)}>
-                    ✕
-                  </button>
-                </Show>
-              </span>
+            <li class="ls-roster-tag ls-roster-tag-avatar">
+              <div class="ls-roster-main">
+                <button
+                  class="ls-sprite-btn"
+                  disabled={!canEditAvatar(m.id)}
+                  title={canEditAvatar(m.id) ? "Pick a look" : undefined}
+                  onClick={() => setPickerFor((cur) => (cur === m.id ? null : m.id))}
+                >
+                  <CharacterSprite seed={m.avatarSeed} size="sm" isNPC={m.isNPC} />
+                </button>
+                <span class="ls-roster-name">
+                  {m.name}
+                  {m.id === props.myMemberId && <span class="ls-you-badge">YOU</span>}
+                </span>
+                <span class="ls-roster-right">
+                  <span class={`ls-kind-chip ls-kind-${m.kind}`}>{kindLabel(m.kind, m.intelligence)}</span>
+                  <Show when={canEditAvatar(m.id)}>
+                    <button
+                      class="ls-reroll-btn"
+                      title="Randomize look"
+                      onClick={() => props.onSetAvatarSeed(props.team.id, m.id, randomAvatarSeed())}
+                    >
+                      🎲
+                    </button>
+                  </Show>
+                  <Show when={props.isHost}>
+                    <button class="ls-remove-btn" onClick={() => props.onRemoveMember(props.team.id, m.id)}>
+                      ✕
+                    </button>
+                  </Show>
+                </span>
+              </div>
+              <Show when={pickerFor() === m.id}>
+                <div class="ls-sprite-picker">
+                  <For each={PRESET_SEEDS}>
+                    {(seed) => (
+                      <button
+                        class={`ls-sprite-swatch ${seed === m.avatarSeed ? "ls-sprite-swatch-active" : ""}`}
+                        onClick={() => {
+                          props.onSetAvatarSeed(props.team.id, m.id, seed);
+                          setPickerFor(null);
+                        }}
+                      >
+                        <CharacterSprite seed={seed} size="sm" isNPC={m.isNPC} />
+                      </button>
+                    )}
+                  </For>
+                </div>
+              </Show>
             </li>
           )}
         </For>
@@ -431,7 +473,15 @@ const CSS = `
   background: rgba(0,0,0,.25); border-radius: 8px; padding: .4rem .6rem;
   border-left: 3px solid var(--booth-line);
 }
-.ls-roster-name { font-weight: 600; font-size: .9rem; }
+.ls-roster-tag-avatar { flex-direction: column; align-items: stretch; gap: .4rem; }
+.ls-roster-main { display: flex; align-items: center; justify-content: space-between; gap: .5rem; }
+.ls-sprite-btn {
+  background: none; border: none; padding: 0; cursor: pointer; line-height: 0;
+  border-radius: 999px; flex-shrink: 0; transition: transform .15s ease;
+}
+.ls-sprite-btn:not(:disabled):hover { transform: scale(1.12); }
+.ls-sprite-btn:disabled { cursor: default; }
+.ls-roster-name { font-weight: 600; font-size: .9rem; flex: 1; }
 .ls-you-badge {
   margin-left: .4rem; font: 800 .58rem/1 "Bungee", sans-serif; color: #0c1220;
   background: #6ee7b7; border-radius: 999px; padding: .18rem .4rem; vertical-align: middle;
@@ -444,8 +494,23 @@ const CSS = `
 .ls-kind-local { background: rgba(110,231,183,.15); color: #6ee7b7; }
 .ls-kind-remote { background: rgba(96,165,250,.15); color: #93c5fd; }
 .ls-kind-bot { background: rgba(233,99,183,.15); color: #f0a8dc; }
+.ls-reroll-btn {
+  background: none; border: none; cursor: pointer; font-size: .95rem;
+  filter: grayscale(.2); transition: transform .15s ease;
+}
+.ls-reroll-btn:hover { transform: rotate(-18deg) scale(1.2); filter: none; }
 .ls-remove-btn { color: #5b6478; background: none; border: none; cursor: pointer; font-size: .8rem; }
 .ls-remove-btn:hover { color: #e24a4a; }
+.ls-sprite-picker {
+  display: flex; flex-wrap: wrap; gap: .3rem; padding: .4rem;
+  background: rgba(0,0,0,.3); border-radius: 8px;
+}
+.ls-sprite-swatch {
+  background: rgba(255,255,255,.06); border: 2px solid transparent; border-radius: 8px;
+  padding: .2rem; cursor: pointer; line-height: 0; transition: transform .12s ease, border-color .12s ease;
+}
+.ls-sprite-swatch:hover { transform: scale(1.08); border-color: rgba(255,255,255,.3); }
+.ls-sprite-swatch-active { border-color: #ffce54; }
 
 .ls-start-btn {
   position: relative; overflow: hidden;

@@ -44,6 +44,7 @@ interface Member {
   intelligence: number; // 0-100, only meaningful for NPCs
   kind: MemberKind;
   claimedBy?: string; // playerId of the socket that owns a "remote" member
+  avatarSeed: string; // deterministic seed the frontend hashes into a procedural sprite look
 }
 
 interface Team {
@@ -317,6 +318,13 @@ function makeId(): string {
   return crypto.randomUUID();
 }
 
+// Fresh seed for a brand-new member's procedural sprite look (see
+// CharacterSprite.tsx on the frontend). Doesn't need to be cryptographically
+// interesting, just unique-ish and stable until the player rerolls it.
+function makeAvatarSeed(): string {
+  return crypto.randomUUID().slice(0, 8);
+}
+
 function createRoom(hostPlayerId: string): Room {
   const code = generateRoomCode();
   const room: Room = {
@@ -491,14 +499,14 @@ function handleAddMember(room: Room, teamId: string, name: string) {
   const team = findTeam(room, teamId);
   const trimmed = name.trim().slice(0, 24);
   if (!team || !trimmed) return;
-  team.members.push({ id: makeId(), name: trimmed, isNPC: false, intelligence: 100, kind: "local" });
+  team.members.push({ id: makeId(), name: trimmed, isNPC: false, intelligence: 100, kind: "local", avatarSeed: makeAvatarSeed() });
 }
 
 function handleAddNpc(room: Room, teamId: string, intelligence: number) {
   const team = findTeam(room, teamId);
   if (!team) return;
   const clamped = Number.isFinite(intelligence) ? Math.max(0, Math.min(100, Math.round(intelligence))) : 50;
-  team.members.push({ id: makeId(), name: nextNpcName(), isNPC: true, intelligence: clamped, kind: "bot" });
+  team.members.push({ id: makeId(), name: nextNpcName(), isNPC: true, intelligence: clamped, kind: "bot", avatarSeed: makeAvatarSeed() });
 }
 
 function handleSetLocalCount(room: Room, teamId: string, count: number) {
@@ -508,7 +516,7 @@ function handleSetLocalCount(room: Room, teamId: string, count: number) {
   const locals = team.members.filter((m) => m.kind === "local");
   if (locals.length < clamped) {
     for (let i = locals.length; i < clamped; i += 1) {
-      team.members.push({ id: makeId(), name: `Player ${i + 1}`, isNPC: false, intelligence: 100, kind: "local" });
+      team.members.push({ id: makeId(), name: `Player ${i + 1}`, isNPC: false, intelligence: 100, kind: "local", avatarSeed: makeAvatarSeed() });
     }
   } else if (locals.length > clamped) {
     let toRemove = locals.length - clamped;
@@ -550,9 +558,28 @@ function handleJoinAsPlayer(room: Room, playerId: string, teamId: string, name: 
   const team = findTeam(room, teamId);
   if (!team) return null;
   const trimmed = name.trim().slice(0, 24) || "Player";
-  const member: Member = { id: makeId(), name: trimmed, isNPC: false, intelligence: 100, kind: "remote", claimedBy: playerId };
+  const member: Member = {
+    id: makeId(),
+    name: trimmed,
+    isNPC: false,
+    intelligence: 100,
+    kind: "remote",
+    claimedBy: playerId,
+    avatarSeed: makeAvatarSeed(),
+  };
   team.members.push(member);
   return member;
+}
+
+// A member (or the host, on their behalf) picks a specific look or rerolls
+// to a fresh random one. The frontend derives the actual visual traits from
+// this seed (see CharacterSprite.tsx) — the server just stores an opaque
+// string, capped to a sane length so nobody stuffs a novel into it.
+function handleSetAvatarSeed(room: Room, teamId: string, memberId: string, seed: string) {
+  const team = findTeam(room, teamId);
+  const member = team?.members.find((m) => m.id === memberId);
+  const trimmed = seed.trim().slice(0, 64);
+  if (member && trimmed) member.avatarSeed = trimmed;
 }
 
 
@@ -813,7 +840,7 @@ function handleStartGame(room: Room, fillIntelligence: number) {
   const clampedIQ = Number.isFinite(fillIntelligence) ? Math.max(0, Math.min(100, Math.round(fillIntelligence))) : 50;
   for (const team of room.teams) {
     while (team.members.length < team.targetSize) {
-      team.members.push({ id: makeId(), name: nextNpcName(), isNPC: true, intelligence: clampedIQ, kind: "bot" });
+      team.members.push({ id: makeId(), name: nextNpcName(), isNPC: true, intelligence: clampedIQ, kind: "bot", avatarSeed: makeAvatarSeed() });
     }
   }
   if (room.teams.some((t) => t.members.length === 0)) return;
@@ -1021,6 +1048,14 @@ const server = Bun.serve<SocketData>({
           if (!isHost) return;
           handleRemoveMember(room, String(msg.teamId ?? ""), String(msg.memberId ?? ""));
           break;
+        case "set_avatar_seed": {
+          // Host can restyle anyone (e.g. local players typed in on their
+          // device); a remote guest may only restyle their own claimed member.
+          const memberId = String(msg.memberId ?? "");
+          if (!canActFor(room, ws, memberId)) return;
+          handleSetAvatarSeed(room, String(msg.teamId ?? ""), memberId, String(msg.seed ?? ""));
+          break;
+        }
         case "start_game":
           if (!isHost) return;
           handleStartGame(room, Number(msg.fillIntelligence ?? 50));

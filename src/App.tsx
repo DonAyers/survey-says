@@ -101,6 +101,10 @@ export default function App() {
     send({ type: "remove_member", teamId, memberId });
   }
 
+  function setAvatarSeed(teamId: string, memberId: string, seed: string) {
+    send({ type: "set_avatar_seed", teamId, memberId, seed });
+  }
+
   function joinAsPlayer(teamId: string, name: string) {
     send({ type: "join_as_player", teamId, name });
   }
@@ -181,6 +185,7 @@ export default function App() {
                 onRemoveMember={removeMember}
                 onStartGame={startGame}
                 onJoinAsPlayer={joinAsPlayer}
+                onSetAvatarSeed={setAvatarSeed}
               />
             </Show>
 

@@ -5,3 +5,12 @@ dist/
 !.env.example
 *.log
 .DS_Store
+.vercel
+.env*
+
+# Raw sprite-gen output (large, regeneratable from scripts/sprite-pipeline) —
+# processed output in public/sprites/ is the shippable asset and is tracked.
+art/raw/
+__pycache__/
+*.pyc
+

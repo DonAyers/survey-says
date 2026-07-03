@@ -1,0 +1,34 @@
+[
+  {
+    "id": "marmalade-otter",
+    "description": "a scrappy orange-and-cream otter mascot wearing a tiny bowtie, holding an oversized game-show microphone"
+  },
+  {
+    "id": "velvet-heckler",
+    "description": "a smug purple-suited lounge-lizard host character with slicked hair and a gold medallion"
+  },
+  {
+    "id": "static-clipboard",
+    "description": "a nervous beige robot intern made of blocky CRT-monitor parts, clutching a clipboard"
+  },
+  {
+    "id": "neon-gravy",
+    "description": "a cheerful magenta blob-creature with a chef's hat dripping cartoon gravy, game-show sparkle eyes"
+  },
+  {
+    "id": "quiet-riot-accountant",
+    "description": "a mild-mannered gray-suited accountant character secretly wearing a studded leather wristband"
+  },
+  {
+    "id": "disco-plumber",
+    "description": "a mustached plumber character in a sequined jumpsuit and afro, disco-ball earring"
+  },
+  {
+    "id": "feral-intern",
+    "description": "a wide-eyed jittery raccoon-person in an oversized company polo shirt, holding too much coffee"
+  },
+  {
+    "id": "chrome-flamingo",
+    "description": "a sleek chrome-plated robotic flamingo mascot with a single glowing pink eye"
+  }
+]
