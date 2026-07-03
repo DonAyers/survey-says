@@ -1,0 +1,30 @@
+{
+  "name": "survey-says",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "kill-dev": "node scripts/kill-ports.mjs 5551 5552",
+    "predev": "node scripts/kill-ports.mjs 5552",
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "preserver": "node scripts/kill-ports.mjs 5551",
+    "server": "bun run server.ts",
+    "predev-stack": "npm run kill-dev",
+    "dev-stack": "concurrently -n server,client -c blue,green \"npm:server\" \"npm:dev\"",
+    "full-stack": "npm run dev-stack"
+  },
+  "dependencies": {
+    "solid-js": "^1.9.3"
+  },
+  "devDependencies": {
+    "@unocss/reset": "^0.65.1",
+    "bun-types": "^1.3.14",
+    "concurrently": "^10.0.3",
+    "typescript": "^5.7.2",
+    "unocss": "^0.65.1",
+    "vite": "^6.0.3",
+    "vite-plugin-solid": "^2.11.0"
+  }
+}
